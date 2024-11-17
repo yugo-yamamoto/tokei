@@ -30,6 +30,24 @@
     <div class="clock" id="clock_time">00:00:00</div>
     <script>
         let audioContext;
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock is active');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock was released');
+                        requestWakeLock(); // Wake Lockが解除されたら再度要求
+                    });
+                } catch (err) {
+                    console.error(`${err.name}, ${err.message}`);
+                }
+            } else {
+                console.warn('Wake Lock API is not supported in this browser');
+            }
+        }
 
         function initAudio() {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -42,14 +60,14 @@
             const gainNode = audioContext.createGain();
 
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // 440Hz
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // 音量を下げる
+            oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
 
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
 
             oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.1); // 0.1秒後に停止
+            oscillator.stop(audioContext.currentTime + 0.1);
         }
 
         function updateClock() {
@@ -63,6 +81,16 @@
                 playBeep();
             }
         }
+
+        // ページ読み込み時にWake Lockを要求
+        document.addEventListener('DOMContentLoaded', requestWakeLock);
+
+        // ページがバックグラウンドから復帰したときにWake Lockを再要求
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
 
         setInterval(updateClock, 1000);
     </script>
