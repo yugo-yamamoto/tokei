@@ -28,8 +28,30 @@
 </head>
 <body>
     <div class="clock" id="clock_time">00:00:00</div>
-    <audio id="beep" src="data:audio/wav;base64,UklGRhwAAABXQVZFZm10IBAAAAABAAQAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAEAAAABAAA="></audio>
     <script>
+        let audioContext;
+
+        function initAudio() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playBeep() {
+            if (!audioContext) initAudio();
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // 440Hz
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // 音量を下げる
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.1); // 0.1秒後に停止
+        }
+
         function updateClock() {
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
@@ -38,7 +60,7 @@
             document.getElementById('clock_time').textContent = `${hours}:${minutes}:${seconds}`;
 
             if (now.getMinutes() === 0 && now.getSeconds() === 0) {
-                document.getElementById('beep').play();
+                playBeep();
             }
         }
 
